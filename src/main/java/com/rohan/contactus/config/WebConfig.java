@@ -1,11 +1,16 @@
 package com.rohan.contactus.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
+
+    @Value("${server.ip}")
+    private String ipAddress;
+
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/contact")
@@ -17,7 +22,7 @@ public class WebConfig implements WebMvcConfigurer {
                 .allowedMethods("GET");
 
         registry.addMapping("/your_ip")
-                .allowedOrigins("https://www.rohandev.online","https://rohandev.online","https://rohan3004.github.io")
+                .allowedOrigins("https://www.rohandev.online","https://rohandev.online","https://rohan3004.github.io",ipAddress)
                 .allowedMethods("GET")
                 .allowCredentials(true)
                 .allowedHeaders("Authorization", "Cache-Control", "Content-Type")

@@ -18,7 +18,7 @@ public class WebConfig implements WebMvcConfigurer {
                 .allowedMethods("POST", "GET", "OPTIONS");
 
         registry.addMapping("/github/**")
-                .allowedOrigins("https://www.rohandev.online","https://rohandev.online","https://rohan3004.github.io") // Change to your actual origin
+                .allowedOrigins("https://www.rohandev.online","https://rohandev.online","https://rohan3004.github.io","http://localhost:5501") // Change to your actual origin
                 .allowedMethods("GET");
 
         registry.addMapping("/your_ip")

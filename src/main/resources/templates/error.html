@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Page Not Found - API.ROHANDEV.ONLINE</title>
+    <link rel="stylesheet" href="/css/404.css">
+    <link rel="icon" href="/favicon.png" type="image/png">
+    <script src="/js/404.js"></script>
+</head>
+<body class="" id="body">
+
+<main id="main">
+    <header class="Menubar">
+        <div class="Menu_BTN">
+            <a href="/" id="close"></a>
+            <a href="#" id="min" onclick="BTNS('min')"></a>
+            <a href="#" id="max" onclick="BTNS('max')"></a>
+        </div>
+        <p class="title_Terminal">PowerShell</p>
+        <p class="title_404">404</p>
+    </header>
+    <div class="Terminal_body" id="Terminal">
+        <p>Welcome <span class="arrow green"><span id="ip-display"></span></span><br>
+            (c) Rohan Chakravarty. All rights reserved.</p></br>
+        <p><span class="arrow green">api.rohandev.online:</span><span class="blue">~/404</span>$ <span id="url" class="red"></span></p>
+        <script>
+            // Capture the current URL
+            const url = window.location.href;
+
+            // Display it on the page
+            document.getElementById("url").textContent = url;
+        </script>
+        <p>The page you’re looking for can’t be found</p><br>
+        <p>Enter "<span class="red">help</span>" for help</p>
+        <br>
+        <div class="Terminal_code">
+            <div class="Terminal_line">
+                <div class="code" id="code">
+
+                </div>
+                <span class="arrow green">api.rohandev.online:</span><span class="blue">~/404</span>$ <span class="user-input" id="userInput"></span>
+                <label for="Keyboard"></label><input type="text" id="Keyboard" class="keyboard">
+            </div>
+        </div>
+    </div>
+</main>
+
+<div class="min_app" id="min_app">
+    <a href="#" onclick="BTNS('re')">
+        <img src="/assets/terminal.png">
+    </a>
+</div>
+
+</body>
+</html>

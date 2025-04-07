@@ -4,7 +4,6 @@ import com.rohan.contactus.entity.Contact;
 import com.rohan.contactus.repository.ContactRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.CrossOrigin;
 
 import java.util.List;
 

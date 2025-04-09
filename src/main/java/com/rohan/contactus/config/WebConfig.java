@@ -27,5 +27,12 @@ public class WebConfig implements WebMvcConfigurer {
                 .allowCredentials(true)
                 .allowedHeaders("Authorization", "Cache-Control", "Content-Type")
                 .exposedHeaders("X-Forwarded-For");
+
+        registry.addMapping("/health")
+                .allowedOrigins("https://www.rohandev.online","https://rohandev.online","https://rohan3004.github.io",ipAddress)
+                .allowedMethods("GET")
+                .allowCredentials(true)
+                .allowedHeaders("Authorization", "Cache-Control", "Content-Type")
+                .exposedHeaders("X-Forwarded-For");
     }
 }

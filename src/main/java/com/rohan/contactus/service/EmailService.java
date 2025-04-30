@@ -13,10 +13,15 @@ public class EmailService {
     private JavaMailSender mailSender;
 
     public void sendEmail(Contact contact) {
+        sendUserAcknowledgement(contact);
+        sendInternalNotification(contact);
+    }
+
+    private void sendUserAcknowledgement(Contact contact) {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom("hello@rohandev.online");
         message.setTo(contact.getEmail());
-        message.setSubject("Thank you for contacting Rohan’s Portfolio"); // concise subject :contentReference[oaicite:9]{index=9}
+        message.setSubject("Thank you for contacting Rohan’s Portfolio");
 
         String body = String.format(
                 "Hi %s,%n%n" +
@@ -32,4 +37,28 @@ public class EmailService {
 
         mailSender.send(message);
     }
+
+    private void sendInternalNotification(Contact contact) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom("hello@rohandev.online");
+        message.setTo("rohan.chakravarty02@gmail.com");
+
+        message.setSubject("New contact form submission from " + contact.getName());
+        String internalBody = String.format(
+                "You have a new contact submission:%n%n" +
+                        "Name: %s%n" +
+                        "Email: %s%n" +
+                        "Contact No: %s%n" +
+                        "Message:%n%s%n%n" +
+                        "Received on: %s",
+                contact.getName(),
+                contact.getEmail(),
+                contact.getContactNo(),
+                contact.getMessage(),
+                java.time.ZonedDateTime.now()      // timestamp for your reference
+        );
+        message.setText(internalBody);
+        mailSender.send(message);
+    }
+
 }

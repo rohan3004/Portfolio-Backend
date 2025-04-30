@@ -25,7 +25,7 @@ public class ContactController {
     public ResponseEntity<String> submitContact(@RequestBody Contact contact) {
         contactService.saveContact(contact);
         emailService.sendEmail(contact);
-        return ResponseEntity.ok("Thank you! And I promise you not to spam! Check your Inbox!");
+        return ResponseEntity.ok("Thank you!! Check your Inbox!");
     }
 
     @GetMapping

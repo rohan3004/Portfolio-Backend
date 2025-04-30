@@ -1,16 +1,28 @@
 package com.rohan.contactus.service;
 
 import com.rohan.contactus.entity.Contact;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+import org.thymeleaf.context.Context;
+import org.thymeleaf.spring6.SpringTemplateEngine;
 
 @Service
 public class EmailService {
 
+    private final JavaMailSender mailSender;
+    private final SpringTemplateEngine templateEngine;
+
     @Autowired
-    private JavaMailSender mailSender;
+    public EmailService(JavaMailSender mailSender, SpringTemplateEngine templateEngine) {
+        this.mailSender = mailSender;
+        this.templateEngine = templateEngine;
+    }
+
 
     public void sendEmail(Contact contact) {
         sendUserAcknowledgement(contact);
@@ -18,24 +30,29 @@ public class EmailService {
     }
 
     private void sendUserAcknowledgement(Contact contact) {
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom("hello@rohandev.online");
-        message.setTo(contact.getEmail());
-        message.setSubject("Thank you for contacting Rohan’s Portfolio");
+        try {
+            MimeMessage mime = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mime, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED, "UTF-8");
 
-        String body = String.format(
-                "Hi %s,%n%n" +
-                        "Thank you for reaching out via my portfolio website. I appreciate your interest and will review your message shortly.%n%n" +
-                        "You can expect a reply from me within 2 business days. In the meantime, feel free to explore my latest projects here: https://rohandev.online%n%n" +
-                        "Best regards,%n" +
-                        "Rohan Chakravarty%n" +
-                        "Software Engineer | rohandev.online%n" +
-                        "LinkedIn: https://www.linkedin.com/in/rohan-chakravarty-/",
-                contact.getName()
-        );
-        message.setText(body);
+            // Prepare the Thymeleaf context
+            Context ctx = new Context();
+            ctx.setVariable("subject", "Thank you for contacting Rohan’s Portfolio");
+            ctx.setVariable("name",    contact.getName());
+            ctx.setVariable("projectUrl", "https://www.rohandev.online/#projects");
 
-        mailSender.send(message);
+            // Process the HTML template
+            String htmlContent = templateEngine.process("user_ack", ctx);
+
+            helper.setFrom("hello@rohandev.online");
+            helper.setTo(contact.getEmail());
+            helper.setSubject("Thank you for contacting Rohan’s Portfolio");
+            helper.setText(htmlContent, true);
+
+            mailSender.send(mime);
+        } catch (MessagingException e) {
+            // log or rethrow as needed
+            throw new IllegalStateException("Failed to send HTML email", e);
+        }
     }
 
     private void sendInternalNotification(Contact contact) {

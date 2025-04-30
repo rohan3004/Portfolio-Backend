@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet"/>
+    <style>
+        body, html {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            background-color: #F0F4F8;
+            font-family: 'Poppins', sans-serif;
+            color: #333333;
+        }
+        .wrapper {
+            width: 100%; padding: 40px 0;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(8px);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+            max-width: 600px; width: 90%;
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #4A90E2 0%, #50E3C2 100%);
+            padding: 30px 20px;
+            text-align: center;
+            color: #ffffff;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 32px;
+            font-weight: 600;
+        }
+        .content {
+            padding: 30px 25px;
+            line-height: 1.6;
+        }
+        .content p {
+            margin: 0 0 16px;
+            font-size: 16px;
+        }
+        .button-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .button {
+            display: inline-block;
+            padding: 14px 28px;
+            font-size: 16px;
+            font-weight: 500;
+            color: #FFFFFF;
+            background-color: #4A90E2;
+            text-decoration: none;
+            border-radius: 999px;
+        }
+        .button:hover {
+            background-color: #3B7DC4;
+        }
+        .footer {
+            background-color: transparent;
+            padding: 20px;
+            text-align: center;
+            font-size: 14px;
+            color: #666666;
+        }
+        .footer a {
+            color: #50E3C2;
+            text-decoration: none;
+        }
+        .social-icons img {
+            width: 20px;
+            height: 20px;
+            vertical-align: middle;
+            margin-left: 4px;
+        }
+    </style>
+</head>
+<body>
+<div class="wrapper">
+    <div class="glass-card">
+        <div class="header">
+            <h1 th:text="${subject}">Thank You!</h1>
+        </div>
+        <div class="content">
+            <p>Dear <strong th:text="${name}">Rohan</strong>,</p>
+            <p>Thanks for getting in touch! I’ve received your message and will respond within 2 business days.</p>
+            <p>In the meantime, feel free to explore my latest projects.</p>
+            <div class="button-container">
+                <a th:href="${projectUrl}" class="button">View My Work</a>
+            </div>
+        </div>
+        <div class="footer">
+            — Rohan Chakravarty<br/>
+            Software Engineer | <a href="https://www.rohandev.online"><span class="social-icons">
+          <img src="https://rohandev.online/assets/logo.webp" alt="rohandev.online Icon"/>
+        </span> rohandev.online</a><a href="https://www.linkedin.com/in/rohan-chakravarty-/">
+          <span class="social-icons">
+            <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/linkedin.svg" alt="LinkedIn Icon" style="filter: invert(47%) sepia(73%) saturate(467%) hue-rotate(130deg) brightness(95%) contrast(91%);"/>
+          </span> @Rohan Chakravarty
+        </a>
+        </div>
+    </div>
+</div>
+</body>
+</html>

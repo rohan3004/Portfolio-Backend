@@ -40,16 +40,20 @@ public class EmailService {
 
             // Prepare the Thymeleaf context
             Context ctx = new Context();
-            ctx.setVariable("subject", "Thank you for contacting Rohan’s Portfolio");
+            ctx.setVariable("subject", "Your request just landed in Rohan’s code pipeline—watch it deploy");
             ctx.setVariable("name",    contact.getName());
             ctx.setVariable("projectUrl", "https://www.rohandev.online/#projects");
+            ctx.setVariable("footerHeader","Next Update: In Your Inbox");
+            ctx.setVariable("privacyUrl","https://rohandev.online/legal/privacy");
+            ctx.setVariable("termsUrl", "https://rohandev.online/legal/terms");
+            ctx.setVariable("contactUrl", "https://rohandev.online/#contact");
 
             // Process the HTML template
             String htmlContent = templateEngine.process("user_ack", ctx);
 
             helper.setFrom("hello@rohandev.online");
             helper.setTo(contact.getEmail());
-            helper.setSubject("Thank you for contacting Rohan’s Portfolio");
+            helper.setSubject("Your request just landed in Rohan’s code pipeline—watch it deploy");
             helper.setText(htmlContent, true);
 
             mailSender.send(mime);

@@ -2,108 +2,101 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8"/>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet"/>
-    <style>
-        body, html {
-            margin: 0; padding: 0;
-            width: 100%; height: 100%;
-            background-color: #F0F4F8;
-            font-family: 'Poppins', sans-serif;
-            color: #333333;
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="x-apple-disable-message-reformatting"/>
+    <!-- JetBrains Mono Font -->
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono&display=swap" rel="stylesheet"/>
+    <style type="text/css">
+        /* CLIENT-SPECIFIC RESET */
+        body, table, td, a { -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; }
+        table, td { mso-table-lspace:0pt; mso-table-rspace:0pt; }
+        img { -ms-interpolation-mode:bicubic; display:block; border:0; outline:none; text-decoration:none; }
+        /* REMOVE BLUE LINKS ON IOS */
+        a[x-apple-data-detectors] { color:inherit !important; text-decoration:none !important; }
+        /* RESET */
+        body { margin:0!important; padding:0!important; width:100%!important; height:100%!important; }
+        /* MOBILE STYLES */
+        @media only screen and (max-width:600px) {
+            .wrapper { padding:20px 0!important; }
+            .glass-card { width:95%!important; }
+            .header h1 { font-size:24px!important; }
+            .content p { font-size:14px!important; line-height:1.4!important; }
+            .button { padding:12px 24px!important; font-size:14px!important; }
+            .social-icons-container a { width:32px!important; height:32px!important; margin:0 4px!important; }
+            .social-icons-container a img { width:16px!important; height:16px!important; }
         }
-        .wrapper {
-            width: 100%; padding: 40px 0;
-            display: flex; justify-content: center; align-items: center;
-        }
-        .glass-card {
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(8px);
-            border-radius: 16px;
-            border: 1px solid rgba(255, 255, 255, 0.6);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-            max-width: 600px; width: 90%;
-            overflow: hidden;
-        }
-        .header {
-            background: linear-gradient(135deg, #4A90E2 0%, #50E3C2 100%);
-            padding: 30px 20px;
-            text-align: center;
-            color: #ffffff;
-        }
-        .header h1 {
-            margin: 0;
-            font-size: 32px;
-            font-weight: 600;
-        }
-        .content {
-            padding: 30px 25px;
-            line-height: 1.6;
-        }
-        .content p {
-            margin: 0 0 16px;
-            font-size: 16px;
-        }
-        .button-container {
-            text-align: center;
-            margin: 30px 0;
-        }
-        .button {
-            display: inline-block;
-            padding: 14px 28px;
-            font-size: 16px;
-            font-weight: 500;
-            color: #FFFFFF;
-            background-color: #4A90E2;
-            text-decoration: none;
-            border-radius: 999px;
-        }
-        .button:hover {
-            background-color: #3B7DC4;
-        }
-        .footer {
-            background-color: transparent;
-            padding: 20px;
-            text-align: center;
-            font-size: 14px;
-            color: #666666;
-        }
-        .footer a {
-            color: #50E3C2;
-            text-decoration: none;
-        }
-        .social-icons img {
-            width: 20px;
-            height: 20px;
-            vertical-align: middle;
-            margin-left: 4px;
-        }
+        /* COLOR PALETTE: 285430, 5F8D4E, A4BE7B, E5D9B6 */
+        body, html { margin:0; padding:0; width:100%; height:100%; background-color:#E5D9B6; font-family:'JetBrains Mono', monospace; color:#285430; }
+        .wrapper { width:100%; padding:40px 0; display:flex; justify-content:center; align-items:center; }
+        .glass-card { background:rgba(229,217,182,0.7); backdrop-filter:blur(8px); border-radius:16px; border:1px solid rgba(229,217,182,0.6); box-shadow:0 8px 24px rgba(0,0,0,0.08); max-width:600px; width:90%; overflow:hidden; }
+        .header { background:rgba(255,255,255,0.5); backdrop-filter:blur(8px); padding:30px 20px; text-align:center; }
+        .header h1 { margin:0; font-size:32px; font-weight:600; font-family:'JetBrains Mono', monospace; color:#285430; }
+        .content { padding:30px 25px; line-height:1.6; }
+        .content p { margin:0 0 16px; font-size:16px; font-family:'JetBrains Mono', monospace; }
+        .button-container { text-align:center; margin:30px 0; }
+        .button { display:inline-block; padding:14px 28px; font-size:16px; font-weight:500; color:#FFFFFF; background-color:#5F8D4E; text-decoration:none; border-radius:999px; font-family:'JetBrains Mono', monospace; }
+        .button:hover { background-color:#A4BE7B; }
+        .footer-header h2 { margin:0; font-size:18px; font-weight:600; color:#285430; font-family:'JetBrains Mono', monospace; }
+        .footer { background-color:transparent; padding:20px; text-align:center; font-size:14px; color:#285430; font-family:'JetBrains Mono', monospace; }
+        .footer a { color:#5F8D4E; text-decoration:none; font-family:'JetBrains Mono', monospace; }
+        .social-icons-container { padding-top:10px; }
+        .social-icons-container a { display:inline-flex; justify-content:center; align-items:center; width:40px; height:40px; margin:0 6px; border-radius:50%; background-color:#A4BE7B; }
+        .social-icons-container a img { width:20px; height:20px; filter: invert(1); }
+        .disclaimer { padding:20px 25px 30px; text-align:center; font-size:12px; color:#285430; line-height:1.4; font-family:'JetBrains Mono', monospace; }
+        .disclaimer a { color:#5F8D4E; text-decoration:none; font-family:'JetBrains Mono', monospace; }
     </style>
 </head>
 <body>
+<!-- Hidden Preheader Text -->
+<div style="display:none; font-size:1px; color:#E5D9B6; line-height:1px; max-height:0; max-width:0; opacity:0; overflow:hidden;">
+    Thank you for reaching out – I’ll be in touch shortly!
+</div>
 <div class="wrapper">
-    <div class="glass-card">
-        <div class="header">
-            <h1 th:text="${subject}">Thank You!</h1>
-        </div>
-        <div class="content">
-            <p>Dear <strong th:text="${name}">Rohan</strong>,</p>
-            <p>Thanks for getting in touch! I’ve received your message and will respond within 2 business days.</p>
-            <p>In the meantime, feel free to explore my latest projects.</p>
-            <div class="button-container">
-                <a th:href="${projectUrl}" class="button">View My Work</a>
-            </div>
-        </div>
-        <div class="footer">
-            — Rohan Chakravarty<br/>
-            Software Engineer | <a href="https://www.rohandev.online"><span class="social-icons">
-          <img src="https://rohandev.online/assets/logo.webp" alt="rohandev.online Icon"/>
-        </span> rohandev.online</a><a href="https://www.linkedin.com/in/rohan-chakravarty-/">
-          <span class="social-icons">
-            <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/linkedin.svg" alt="LinkedIn Icon" style="filter: invert(47%) sepia(73%) saturate(467%) hue-rotate(130deg) brightness(95%) contrast(91%);"/>
-          </span> @Rohan Chakravarty
-        </a>
-        </div>
-    </div>
+    <table border="0" cellpadding="0" cellspacing="0" width="100%" role="presentation">
+        <tr><td align="center">
+            <table class="glass-card" border="0" cellpadding="0" cellspacing="0" width="100%" role="presentation">
+                <!-- Header -->
+                <tr><td class="header">
+                    <h1 th:text="${subject}">Thank You!</h1>
+                </td></tr>
+                <!-- Content -->
+                <tr><td class="content">
+                    <p>Dear <strong th:text="${name}">Rohan</strong>,</p>
+                    <p>Thanks for getting in touch! I’ve received your message and will respond within 2 business days.</p>
+                    <p>In the meantime, feel free to explore my latest projects.</p>
+                    <div class="button-container">
+                        <a th:href="${projectUrl}" class="button">View My Work</a>
+                    </div>
+                </td></tr>
+                <!-- Footer Header -->
+                <tr><td class="footer-header" style="padding:20px 25px 0; text-align:center;">
+                    <h2 th:text="${footerHeader}">Stay Connected</h2>
+                </td></tr>
+                <!-- Signature & Social -->
+                <tr><td class="footer">
+                    — Rohan Chakravarty<br/>
+                    Software Engineer | <a href="https://www.rohandev.online" target="_blank">rohandev.online</a><br/>
+                    <div class="social-icons-container">
+                        <a th:href="${instagramUrl}" target="_blank"><img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/instagram.svg" alt="Instagram"/></a>
+                        <a th:href="${pinterestUrl}" target="_blank"><img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/pinterest.svg" alt="Pinterest"/></a>
+                        <a th:href="${tiktokUrl}" target="_blank"><img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/tiktok.svg" alt="TikTok"/></a>
+                        <a th:href="${youtubeUrl}" target="_blank"><img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/youtube.svg" alt="YouTube"/></a>
+                        <a th:href="${facebookUrl}" target="_blank"><img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/facebook.svg" alt="Facebook"/></a>
+                        <a th:href="${twitterUrl}" target="_blank"><img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/twitter.svg" alt="Twitter"/></a>
+                    </div>
+                </td></tr>
+                <!-- Disclaimer -->
+                <tr><td class="disclaimer">
+                    <p><a href="#" th:href="@{${privacyUrl}}">Privacy Policy</a> | <a href="#" th:href="@{${termsUrl}}">Terms of Use</a> | <a href="#" th:href="@{${contactUrl}}">Contact Us</a></p>
+                    <p>This email has been sent to you by Rohan.<br/>© 2025 Rohan Chakravarty. All rights reserved.</p>
+                    <p>If you do not wish to receive any further emails from us, please <a href="#" th:href="@{${unsubscribeUrl}}">Unsubscribe</a>.<br/>
+                        Please do not reply to this message. This email address is not monitored for responses.<br/>
+                        Having trouble viewing this email? <a href="#" th:href="@{${viewOnlineUrl}}">Click Here</a>.</p>
+                </td></tr>
+            </table>
+        </td></tr>
+    </table>
 </div>
 </body>
 </html>

@@ -56,6 +56,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/v1/your_ip").permitAll()
                         .requestMatchers(new AntPathRequestMatcher("/v1/github/**")).permitAll()
                         .requestMatchers(new AntPathRequestMatcher("/favicon.ico")).permitAll()
+                        .requestMatchers(HttpMethod.GET, "/v1/reports/**").permitAll()
                         .requestMatchers("/v1/admin/**").hasRole("ADMIN")
                         // Protect everything else
                         .anyRequest().authenticated()

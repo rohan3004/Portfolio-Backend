@@ -85,7 +85,7 @@ public class AuthenticationController {
         ResponseCookie.ResponseCookieBuilder cookieBuilder = ResponseCookie.from("refreshToken", token)
                 .httpOnly(true)
                 .secure(true)
-                .path("/v1/auth/refresh")
+                .path("/")
                 .maxAge(REFRESH_TOKEN_MAX_AGE_SECONDS)
                 .sameSite("Strict");
 
@@ -102,7 +102,7 @@ public class AuthenticationController {
         ResponseCookie.ResponseCookieBuilder clearCookieBuilder = ResponseCookie.from("refreshToken", "")
                 .httpOnly(true)
                 .secure(true)
-                .path("/api/v1/auth/refresh")
+                .path("/")
                 .maxAge(0)
                 .sameSite("Strict");
 

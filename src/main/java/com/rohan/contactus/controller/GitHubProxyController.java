@@ -10,7 +10,7 @@ import org.springframework.web.client.RestTemplate;
 
 
 @RestController
-@RequestMapping("/github")
+@RequestMapping("/v1/github")
 public class GitHubProxyController {
 
     private final RestTemplate restTemplate;

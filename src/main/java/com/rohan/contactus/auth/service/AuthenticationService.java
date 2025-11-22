@@ -4,22 +4,30 @@ import com.rohan.contactus.auth.dto.LoginRequest;
 import com.rohan.contactus.auth.dto.AuthenticationResult;
 import com.rohan.contactus.auth.dto.RegisterRequest;
 import com.rohan.contactus.auth.exception.TokenRefreshException;
+import com.rohan.contactus.auth.repository.OtpRepository;
 import com.rohan.contactus.auth.repository.RefreshTokenRepository;
 import com.rohan.contactus.auth.repository.UserRepository;
+import com.rohan.contactus.model.Otp;
 import com.rohan.contactus.model.RefreshToken;
 import com.rohan.contactus.model.User;
+import com.rohan.contactus.service.EmailService;
 import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.security.SecureRandom;
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +37,8 @@ public class AuthenticationService {
     private final JwtService jwtService;
     private final RefreshTokenRepository refreshTokenRepository;
     private final UserDetailsService userDetailsService;
+    private final OtpRepository otpRepository;
+    private final EmailService emailService;
 
     //registration
     private final UserRepository userRepository;
@@ -37,22 +47,59 @@ public class AuthenticationService {
     @PersistenceContext
     private EntityManager entityManager;
 
+    @Value("${application.security.otp.expiration-minutes:5}") // Retrieve expiry duration
+    private int otpExpiryMinutes;
+
+    // --- 1. SEND OTP (Auto-Registers if User doesn't exist) ---
+    @Transactional
+    public void sendOtp(String username) {
+
+        User user = userRepository.findByUsername(username)
+                .orElseGet(() -> {
+                    User newUser = new User();
+                    newUser.setUsername(username);
+                    // NOTE: Hardcoding 'ROLE_ADMIN' for the first user if needed, or stick to 'ROLE_USER'
+                    newUser.setRoles("ROLE_USER");
+                    return userRepository.save(newUser);
+                });
+
+        // Generate 6-digit OTP
+        String otpCode = String.format("%06d", new SecureRandom().nextInt(999999));
+
+        // Save/Update OTP in DB
+        Otp otp = otpRepository.findByUser(user).orElse(new Otp());
+        otp.setUser(user);
+        otp.setCode(otpCode);
+        otp.setExpiresAt(LocalDateTime.now().plusMinutes(otpExpiryMinutes));
+        otpRepository.save(otp);
+
+        // --- PRODUCTION FIX: Send HTML Email instead of System.out.println ---
+        emailService.sendOtpEmail(username, otpCode, otpExpiryMinutes);
+    }
+
+    // --- 2. AUTHENTICATE (Verify OTP) ---
     @Transactional
     public AuthenticationResult authenticate(LoginRequest request) {
-        // 1. Authenticate credentials
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
-        );
+        User user = userRepository.findByUsername(request.getUsername())
+                .orElseThrow(() -> new UsernameNotFoundException("User not found. Request OTP first."));
 
-        // 2. Load UserDetails
-        final User userDetails = (User) userDetailsService.loadUserByUsername(request.getUsername());
+        Otp otpEntity = otpRepository.findByUser(user)
+                .orElseThrow(() -> new BadCredentialsException("No OTP found. Request a code."));
 
-        // 3. Generate tokens
-        final String accessToken = jwtService.generateAccessToken(userDetails);
-        final String refreshTokenString = jwtService.generateRefreshToken(userDetails);
+        if (otpEntity.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new BadCredentialsException("OTP expired.");
+        }
+        if (!otpEntity.getCode().equals(request.getOtp())) {
+            throw new BadCredentialsException("Invalid OTP.");
+        }
 
-        // 4. Store/Update the Refresh Token (Uses explicit persistence fix)
-        saveRefreshToken(userDetails, refreshTokenString);
+        // Consumable OTP: Delete after use
+        otpRepository.delete(otpEntity);
+
+        final String accessToken = jwtService.generateAccessToken(user);
+        final String refreshTokenString = jwtService.generateRefreshToken(user);
+
+        saveRefreshToken(user, refreshTokenString);
 
         return new AuthenticationResult(accessToken, refreshTokenString);
     }
@@ -128,25 +175,6 @@ public class AuthenticationService {
             // Use EntityManager.merge() for updating an existing entity (Fixes AssertionFailure)
             entityManager.merge(existingToken);
         }
-    }
-    @Transactional
-    public User register(RegisterRequest request) {
-        // 1. Check if user already exists
-        if (userRepository.findByUsername(request.getUsername()).isPresent()) {
-            throw new IllegalStateException("User already exists: " + request.getUsername());
-        }
-
-        // 2. Hash the password
-        String hashedPassword = passwordEncoder.encode(request.getPassword());
-
-        // 3. Create the new User entity
-        User newUser = new User();
-        newUser.setUsername(request.getUsername());
-        newUser.setPassword(hashedPassword);
-        newUser.setRoles("ROLE_USER"); // Default role for new users
-
-        // 4. Save the user to the database
-        return userRepository.save(newUser);
     }
 
     /**

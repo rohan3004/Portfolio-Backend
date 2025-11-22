@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class IPController {
 
 
-    @GetMapping("/your_ip")
+    @GetMapping("/v1/your_ip")
     public ResponseEntity<String> getClientIp(HttpServletRequest request, @RequestHeader(value = "X-Forwarded-For", required = false)String forwarded_for) {
 
         String clientIp = forwarded_for != null && !forwarded_for.isEmpty()

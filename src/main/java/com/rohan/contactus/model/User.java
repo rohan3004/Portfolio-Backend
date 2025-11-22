@@ -7,8 +7,8 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.util.Arrays;
 import java.util.Collection;
-import java.util.List;
 import java.util.stream.Collectors;
 
 @Entity
@@ -21,18 +21,23 @@ public class User implements UserDetails {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String username;
-    private String password;
-    private String roles; // Store roles as a comma-separated string
+    @Column(unique = true, nullable = false)
+    private String username; // This acts as the Email
+
+
+    private String roles; // Store roles as a comma-separated string "ROLE_USER,ROLE_ADMIN"
 
     // --- UserDetails Implementation ---
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(this.roles.split(",")).stream()
+        return Arrays.stream(roles.split(","))
                 .map(SimpleGrantedAuthority::new)
                 .collect(Collectors.toList());
     }
+
+    @Override public String getPassword() { return null; } // No password used
+    @Override public String getUsername() { return username; }
 
     // Simplifications remain the same
     @Override public boolean isAccountNonExpired() { return true; }

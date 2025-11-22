@@ -13,7 +13,7 @@ import java.util.List;
 
 
 @RestController
-@RequestMapping("/contact")
+@RequestMapping()
 public class ContactController {
     @Autowired
     private ContactService contactService;
@@ -21,14 +21,14 @@ public class ContactController {
     @Autowired
     private EmailService emailService;
 
-    @PostMapping
+    @PostMapping("/v1/contact")
     public ResponseEntity<String> submitContact(@RequestBody Contact contact) {
         contactService.saveContact(contact);
         emailService.sendEmail(contact);
         return ResponseEntity.ok("Thank you!! Check your Inbox!");
     }
 
-    @GetMapping
+    @GetMapping("/v1/admin/contact")
     public List<Contact> getAllContacts() {
         return contactService.getAllContacts();
     }

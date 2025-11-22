@@ -10,9 +10,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 public class ContactUsApplication {
 
     public static void main(String[] args) {
-        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
-        String newHash = encoder.encode("Cactus!42Lemon$Giraffe1530");
-        System.out.println("New Hash for 'testpassword': " + newHash);
         SpringApplication.run(ContactUsApplication.class, args);
     }
 

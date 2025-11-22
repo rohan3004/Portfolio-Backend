@@ -1,12 +1,8 @@
 package com.rohan.contactus.auth.controller;
 
-import com.rohan.contactus.auth.dto.LoginRequest;
-import com.rohan.contactus.auth.dto.AuthenticationResponse;
-import com.rohan.contactus.auth.dto.AuthenticationResult;
-import com.rohan.contactus.auth.dto.RegisterRequest;
+import com.rohan.contactus.auth.dto.*;
 import com.rohan.contactus.auth.exception.TokenRefreshException;
 import com.rohan.contactus.auth.service.AuthenticationService;
-import com.rohan.contactus.model.User;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,6 +12,7 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
@@ -26,7 +23,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/v1/auth")
+@RequestMapping("/v1/auth")
 @RequiredArgsConstructor
 public class AuthenticationController {
 
@@ -38,23 +35,6 @@ public class AuthenticationController {
     // Inject the new domain property
     @Value("${application.security.cookie.domain:}") // Default to empty if not set
     private String cookieDomain;
-
-    /**
-     * Handles user login and initial token issuance.
-     * @return Access Token in body, Refresh Token in HttpOnly cookie.
-     */
-    @PostMapping("/login")
-    public ResponseEntity<AuthenticationResponse> login(@RequestBody LoginRequest request, HttpServletResponse response) {
-
-        // AuthenticationService handles credentials check and token generation/storage
-        AuthenticationResult result = authenticationService.authenticate(request);
-
-        // 1. Set Refresh Token as the secure HttpOnly cookie
-        setRefreshCookie(response, result.getRefreshToken());
-
-        // 2. Return Access Token in body
-        return ResponseEntity.ok(new AuthenticationResponse(result.getAccessToken()));
-    }
 
     /**
      * Handles token renewal using the Refresh Token cookie.
@@ -105,7 +85,7 @@ public class AuthenticationController {
         ResponseCookie.ResponseCookieBuilder cookieBuilder = ResponseCookie.from("refreshToken", token)
                 .httpOnly(true)
                 .secure(true)
-                .path("/api/v1/auth/refresh")
+                .path("/v1/auth/refresh")
                 .maxAge(REFRESH_TOKEN_MAX_AGE_SECONDS)
                 .sameSite("Strict");
 
@@ -132,23 +112,6 @@ public class AuthenticationController {
 
         response.addHeader(HttpHeaders.SET_COOKIE, clearCookieBuilder.build().toString());
     }
-    // --- New Registration Endpoint ---
-    @PostMapping("/register")
-    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
-        try {
-            User registeredUser = authenticationService.register(request);
-            // In a real scenario, you might log in the user here immediately and return tokens.
-            return ResponseEntity.status(HttpStatus.CREATED).body(registeredUser);
-        } catch (IllegalStateException e) {
-            // User already exists (handled by service layer logic)
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
-        } catch (Exception e) {
-            // General registration failure
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
-    }
-
-    // --- GLOBAL EXCEPTION HANDLER FOR VALIDATION ERRORS (Production Standard) ---
     /**
      * Handles validation errors (@Valid) and returns a clean 400 Bad Request response.
      */
@@ -238,6 +201,31 @@ public class AuthenticationController {
             error.put("error", "Internal Server Error");
             error.put("message", "Could not complete token revocation.");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
+
+    // --- 1. Request OTP (Auto-Register) ---
+    @PostMapping("/send-otp")
+    public ResponseEntity<?> sendOtp(@Valid @RequestBody OtpRequest request) {
+        try {
+            authenticationService.sendOtp(request.getUsername());
+            return ResponseEntity.ok(Map.of("message", "OTP sent to " + request.getUsername()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Failed to send OTP"));
+        }
+    }
+
+    // --- 2. Login with OTP ---
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody LoginRequest request, HttpServletResponse response) {
+        try {
+            AuthenticationResult result = authenticationService.authenticate(request);
+            setRefreshCookie(response, result.getRefreshToken());
+            return ResponseEntity.ok(new AuthenticationResponse(result.getAccessToken()));
+        } catch (BadCredentialsException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Login failed"));
         }
     }
 }

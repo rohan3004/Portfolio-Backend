@@ -36,22 +36,22 @@ public class EmailService {
         try {
             MimeMessage mime = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mime, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED, "UTF-8");
-            helper.setFrom(new InternetAddress("hello@rohandev.online","Rohan Chakravarty"));
+            helper.setFrom(new InternetAddress("hello@rcxdev.com","Rohan Chakravarty"));
 
             // Prepare the Thymeleaf context
             Context ctx = new Context();
             ctx.setVariable("subject", "Your request just landed in Rohan’s code pipeline—watch it deploy");
             ctx.setVariable("name",    contact.getName());
-            ctx.setVariable("projectUrl", "https://www.rohandev.online/#projects");
+            ctx.setVariable("projectUrl", "https://www.rcxdev.com/#projects");
             ctx.setVariable("footerHeader","Next Update: In Your Inbox");
-            ctx.setVariable("privacyUrl","https://rohandev.online/legal/privacy");
-            ctx.setVariable("termsUrl", "https://rohandev.online/legal/terms");
-            ctx.setVariable("contactUrl", "https://rohandev.online/#contact");
+            ctx.setVariable("privacyUrl","https://rcxdev.com/legal/privacy");
+            ctx.setVariable("termsUrl", "https://rcxdev.com/legal/terms");
+            ctx.setVariable("contactUrl", "https://rcxdev.com/#contact");
 
             // Process the HTML template
             String htmlContent = templateEngine.process("user_ack", ctx);
 
-            helper.setFrom("hello@rohandev.online");
+            helper.setFrom("hello@rcxdev.com");
             helper.setTo(contact.getEmail());
             helper.setSubject("Your request just landed in Rohan’s code pipeline—watch it deploy");
             helper.setText(htmlContent, true);
@@ -67,8 +67,8 @@ public class EmailService {
 
     private void sendInternalNotification(Contact contact) {
         SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom("hello@rohandev.online");
-        message.setTo("rohan.chakravarty02@gmail.com");
+        message.setFrom("no-reply@byrohan.in");
+        message.setTo("hello@rcxdev.com");//my personal address so that I can receive those submissions previously it was my mail now this forwards to my mail
 
         message.setSubject("New contact form submission from " + contact.getName());
         String internalBody = String.format(
@@ -87,5 +87,33 @@ public class EmailService {
         message.setText(internalBody);
         mailSender.send(message);
     }
+    /**
+     * NEW METHOD: Sends the OTP code using a Thymeleaf template.
+     */
+    public void sendOtpEmail(String recipientEmail, String otpCode, int otpExpiryMinutes) {
+        try {
+            MimeMessage mime = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mime, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED, "UTF-8");
 
+            // --- Sender Configuration ---
+            helper.setFrom(new InternetAddress("no-reply@byrohan.in", "Rohan's Auth Service"));
+            helper.setTo(recipientEmail);
+            helper.setSubject("Your One-Time Login Code");
+
+            // --- Thymeleaf Context ---
+            Context ctx = new Context();
+            ctx.setVariable("username", recipientEmail);
+            ctx.setVariable("otpCode", otpCode);
+            ctx.setVariable("otpExpiryMinutes", otpExpiryMinutes);
+
+            // Process the HTML template (otp_email.html)
+            String htmlContent = templateEngine.process("otp_email", ctx);
+
+            helper.setText(htmlContent, true); // Set HTML content
+            mailSender.send(mime);
+
+        } catch (MessagingException | UnsupportedEncodingException e) {
+            throw new IllegalStateException("Failed to send OTP email to " + recipientEmail, e);
+        }
+    }
 }

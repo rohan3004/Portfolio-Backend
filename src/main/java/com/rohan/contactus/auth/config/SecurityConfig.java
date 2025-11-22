@@ -4,6 +4,7 @@ import com.rohan.contactus.auth.filter.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -50,8 +51,11 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Use AntPathRequestMatcher for clarity and compatibility
                         // This ensures ALL methods (GET, POST, OPTIONS) on this path are open
-                        .requestMatchers(new AntPathRequestMatcher("/api/v1/auth/**")).permitAll()
-                        .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+                        .requestMatchers(new AntPathRequestMatcher("/v1/auth/**")).permitAll()
+                        .requestMatchers(HttpMethod.POST, "/v1/contact").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/v1/your_ip").permitAll()
+                        .requestMatchers(new AntPathRequestMatcher("/v1/github/**")).permitAll()
+                        .requestMatchers("/v1/admin/**").hasRole("ADMIN")
                         // Protect everything else
                         .anyRequest().authenticated()
                 )

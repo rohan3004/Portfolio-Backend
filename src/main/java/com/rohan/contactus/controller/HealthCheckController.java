@@ -23,7 +23,7 @@ public class HealthCheckController {
     @Autowired
     private DataSource dataSource;
 
-    @GetMapping("/health")
+    @GetMapping("/v1/admin/health")
     public ResponseEntity<Map<String, Object>> healthCheck() {
         Map<String, Object> response = new HashMap<>();
         response.put("server", "alive");

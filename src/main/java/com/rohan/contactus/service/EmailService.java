@@ -96,7 +96,7 @@ public class EmailService {
             MimeMessageHelper helper = new MimeMessageHelper(mime, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED, "UTF-8");
 
             // --- Sender Configuration ---
-            helper.setFrom(new InternetAddress("no-reply@byrohan.in", "Rohan's Auth Service"));
+            helper.setFrom(new InternetAddress("no-reply@byrohan.in", "RCX Auth Engine"));
             helper.setTo(recipientEmail);
             helper.setSubject("Your One-Time Login Code");
 

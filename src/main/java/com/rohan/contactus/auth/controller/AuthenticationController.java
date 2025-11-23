@@ -3,7 +3,9 @@ package com.rohan.contactus.auth.controller;
 import com.rohan.contactus.auth.dto.*;
 import com.rohan.contactus.auth.exception.TokenRefreshException;
 import com.rohan.contactus.auth.service.AuthenticationService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -16,12 +18,18 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
-import jakarta.validation.Valid;
 
 import java.security.Principal;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Main entry point for Auth.
+ * Handles everything from OTP login and registration to token rotation.
+ *
+ * We use stateless JWTs for access, but keep the Refresh Token in a
+ * secure, HTTP-only cookie to prevent XSS attacks.
+ */
 @RestController
 @RequestMapping("/v1/auth")
 @RequiredArgsConstructor
@@ -30,202 +38,219 @@ public class AuthenticationController {
     private final AuthenticationService authenticationService;
 
     @Value("${application.security.jwt.refresh-token.expiration}")
-    private long REFRESH_TOKEN_MAX_AGE_SECONDS;
+    private long refreshTokenMaxAgeSeconds;
 
-    // Inject the new domain property
-    @Value("${application.security.cookie.domain:}") // Default to empty if not set
+    // Set this in prod properties if you have subdomains (e.g., .rohandev.online)
+    @Value("${application.security.cookie.domain:}")
     private String cookieDomain;
 
     /**
-     * Handles token renewal using the Refresh Token cookie.
-     * @return New Access Token in body, New Refresh Token in HttpOnly cookie (rotation).
+     * Rotates the refresh token.
+     * Use this when the short-lived access token expires.
+     *
+     * If the cookie is valid, we give you a new pair.
+     * If it's invalid or missing, we force a logout.
      */
     @PostMapping("/refresh")
-    public ResponseEntity<AuthenticationResponse> refresh(
+    public ResponseEntity<?> refresh(
             @CookieValue(name = "refreshToken", required = false) String refreshToken,
-            HttpServletResponse response) {
-
-        // If the cookie wasn't sent by the client, deny access.
+            HttpServletResponse response
+    ) {
         if (refreshToken == null) {
-            return ResponseEntity.status(401).build();
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
         try {
-            // Service handles validation, rotation, and DB checks.
             AuthenticationResult result = authenticationService.refreshToken(refreshToken);
 
-            // Success: Set the NEW Refresh Token cookie (rotation complete)
+            // Rotate the cookie and send back the new access token
             setRefreshCookie(response, result.getRefreshToken());
-
-            // Return NEW Access Token
             return ResponseEntity.ok(new AuthenticationResponse(result.getAccessToken()));
 
         } catch (TokenRefreshException e) {
-            // Catch expired, invalid, or reused token errors.
-            // Clear the expired cookie and force client to re-login.
+            // Token is likely compromised or just plain expired. Clean up the client state.
             clearRefreshCookie(response);
-            return ResponseEntity.status(403).build();
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", e.getMessage()));
         }
     }
 
     /**
-     * Handles user logout by clearing the Refresh Token cookie.
+     * Simple client-side logout.
+     * Just kills the cookie so the browser stops sending it.
      */
     @PostMapping("/logout")
     public ResponseEntity<?> logout(HttpServletResponse response) {
-        // In a complex system, you might also call a service method to revoke the token from the database.
         clearRefreshCookie(response);
-        return ResponseEntity.ok("Logged out successfully.");
-    }
-
-    // --- Helper Methods for Cookie Management ---
-
-    private void setRefreshCookie(HttpServletResponse response, String token) {
-        // 1. Create the base cookie builder
-        ResponseCookie.ResponseCookieBuilder cookieBuilder = ResponseCookie.from("refreshToken", token)
-                .httpOnly(true)
-                .secure(true)
-                .path("/")
-                .maxAge(REFRESH_TOKEN_MAX_AGE_SECONDS)
-                .sameSite("Strict");
-
-        // 2. Add the Domain attribute if it is configured (CRITICAL FIX)
-        if (cookieDomain != null && !cookieDomain.isEmpty()) {
-            cookieBuilder = cookieBuilder.domain(cookieDomain);
-        }
-
-        response.addHeader(HttpHeaders.SET_COOKIE, cookieBuilder.build().toString());
-    }
-
-    private void clearRefreshCookie(HttpServletResponse response) {
-        // Must apply the domain setting when clearing the cookie as well!
-        ResponseCookie.ResponseCookieBuilder clearCookieBuilder = ResponseCookie.from("refreshToken", "")
-                .httpOnly(true)
-                .secure(true)
-                .path("/")
-                .maxAge(0)
-                .sameSite("Strict");
-
-        if (cookieDomain != null && !cookieDomain.isEmpty()) {
-            clearCookieBuilder = clearCookieBuilder.domain(cookieDomain);
-        }
-
-        response.addHeader(HttpHeaders.SET_COOKIE, clearCookieBuilder.build().toString());
-    }
-    /**
-     * Handles validation errors (@Valid) and returns a clean 400 Bad Request response.
-     */
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public Map<String, String> handleValidationExceptions(
-            MethodArgumentNotValidException ex) {
-        Map<String, String> errors = new HashMap<>();
-        ex.getBindingResult().getFieldErrors().forEach(error -> {
-            errors.put(error.getField(), error.getDefaultMessage());
-        });
-        return errors;
+        return ResponseEntity.ok(Map.of("message", "Logged out"));
     }
 
     /**
-     * Deletes a user account specified by a query parameter.
-     * Requires ROLE_ADMIN and prevents self-deletion.
+     * Admin only.
+     * Hard deletes a user. The service layer handles self-deletion checks.
      */
     @DeleteMapping("/delete")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Map<String, String>> deleteUser(
+    public ResponseEntity<?> deleteUser(
             @RequestParam("username") String username,
-            Principal principal // Inject the authenticated user's context
+            Principal principal
     ) {
-        // The username of the admin currently logged in
-        String currentAdminUsername = principal.getName();
-
         try {
-            authenticationService.deleteUser(username, currentAdminUsername);
-
-            // --- INDUSTRY STANDARD RESPONSE FOR DELETION ---
-            Map<String, String> response = new HashMap<>();
-            response.put("status", "success");
-            response.put("message", "User " + username + " deleted successfully.");
-
-            // Return 200 OK with custom message body (more informative than 204)
-            return ResponseEntity.ok(response);
-
+            authenticationService.deleteUser(username, principal.getName());
+            return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "message", "User deleted"
+            ));
         } catch (AccessDeniedException e) {
-            // Caught when admin attempts to delete self (triggers 403 Forbidden)
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "Security Violation");
-            error.put("message", e.getMessage());
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
-
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", e.getMessage()));
         } catch (UsernameNotFoundException e) {
-            // User to delete was not found.
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "Not Found");
-            error.put("message", e.getMessage());
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
-
-        } catch (Exception e) {
-            // General failure
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "Internal Server Error");
-            error.put("message", "Could not complete deletion due to a server error.");
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", e.getMessage()));
         }
     }
+
     /**
-     * Forcibly revokes a user's session (Refresh Token) from the database.
-     * Requires ROLE_ADMIN.
+     * Admin "Kill Switch".
+     * Immediately invalidates a user's session by nuking their refresh token in the DB.
+     * Use this if an account looks suspicious.
      */
     @PostMapping("/revoke")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, String>> revokeAccess(
-            @RequestParam("username") String username
+            @RequestParam("username") String username,
+            Principal principal
     ) {
         try {
-            authenticationService.revokeToken(username);
+            authenticationService.revokeToken(username, principal.getName());
 
             Map<String, String> response = new HashMap<>();
             response.put("status", "success");
             response.put("message", "Session for user " + username + " successfully revoked.");
-
             return ResponseEntity.ok(response);
 
         } catch (UsernameNotFoundException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "Not Found");
-            error.put("message", e.getMessage());
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "Not Found", "message", e.getMessage()));
 
         } catch (Exception e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "Internal Server Error");
-            error.put("message", "Could not complete token revocation.");
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Internal Server Error", "message", "Could not revoke session."));
         }
     }
 
-    // --- 1. Request OTP (Auto-Register) ---
+    /**
+     * Step 1 of Login: Request the code.
+     * We rate limit this in the service to prevent spam.
+     */
     @PostMapping("/send-otp")
     public ResponseEntity<?> sendOtp(@Valid @RequestBody OtpRequest request) {
         try {
             authenticationService.sendOtp(request.getUsername());
-            return ResponseEntity.ok(Map.of("message", "OTP sent to " + request.getUsername()));
+            return ResponseEntity.ok(Map.of(
+                    "message", "OTP sent to " + request.getUsername()
+            ));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Failed to send OTP"));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to send OTP"));
         }
     }
 
-    // --- 2. Login with OTP ---
-    @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest request, HttpServletResponse response) {
+    /**
+     * Step 2 of Login: Verify code.
+     *
+     * If they are a new user (incomplete profile), we return 202 Accepted and tell them to register.
+     * If they are an existing user, we return 200 OK and log them in immediately.
+     */
+    @PostMapping("/verify-otp")
+    public ResponseEntity<?> verifyOtp(
+            @RequestBody LoginRequest request,
+            HttpServletRequest httpRequest,
+            HttpServletResponse response
+    ) {
         try {
-            AuthenticationResult result = authenticationService.authenticate(request);
+            VerifyOtpResponse result = authenticationService.verifyOtp(request, httpRequest);
+
+            if (result.isNewUser()) {
+                // Profile incomplete, don't issue JWTs yet.
+                return ResponseEntity.accepted().body(result);
+            }
+
+            // Regular login
             setRefreshCookie(response, result.getRefreshToken());
             return ResponseEntity.ok(new AuthenticationResponse(result.getAccessToken()));
+
         } catch (BadCredentialsException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", e.getMessage()));
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Login failed"));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", e.getMessage()));
         }
+    }
+
+    /**
+     * Step 3 (Optional): Complete Registration.
+     * Only for new users who passed Step 2 but didn't have a profile.
+     */
+    @PostMapping("/complete-registration")
+    public ResponseEntity<?> completeRegistration(
+            @Valid @RequestBody FullRegistrationRequest request,
+            HttpServletRequest httpRequest,
+            HttpServletResponse response
+    ) {
+        try {
+            AuthenticationResult result = authenticationService.completeRegistration(request, httpRequest);
+
+            // Registration done, log them in.
+            setRefreshCookie(response, result.getRefreshToken());
+            return ResponseEntity.ok(new AuthenticationResponse(result.getAccessToken()));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Helper to make validation errors (like invalid email) look nice for the frontend.
+     */
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public Map<String, String> handleValidationExceptions(MethodArgumentNotValidException ex) {
+        Map<String, String> errors = new HashMap<>();
+        ex.getBindingResult().getFieldErrors()
+                .forEach(error -> errors.put(error.getField(), error.getDefaultMessage()));
+        return errors;
+    }
+
+    // --- Cookie Helpers ---
+
+    private void setRefreshCookie(HttpServletResponse response, String token) {
+        // HttpOnly is crucial here to stop XSS scripts from stealing the token
+        ResponseCookie cookie = ResponseCookie.from("refreshToken", token)
+                .httpOnly(true)
+                .secure(true) // Always true for prod
+                .path("/")
+                .maxAge(refreshTokenMaxAgeSeconds)
+                .sameSite("None") // Needed since frontend/backend are on different domains
+                .build();
+
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+    }
+
+    private void clearRefreshCookie(HttpServletResponse response) {
+        ResponseCookie cookie = ResponseCookie.from("refreshToken", "")
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(0) // Expire immediately
+                .sameSite("None")
+                .build();
+
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }
 }

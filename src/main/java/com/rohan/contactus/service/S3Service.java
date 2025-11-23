@@ -6,12 +6,7 @@ import org.springframework.stereotype.Service;
 import software.amazon.awssdk.core.ResponseBytes;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.GetObjectRequest;
-import software.amazon.awssdk.services.s3.model.GetObjectResponse;
-import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
-
-import java.io.File;
+import software.amazon.awssdk.services.s3.model.*;
 
 @Service
 @RequiredArgsConstructor
@@ -22,13 +17,29 @@ public class S3Service {
     @Value("${aws.s3.bucket-name}")
     private String bucketName;
 
-    public void uploadFile(String key, File file) {
-        PutObjectRequest putOb = PutObjectRequest.builder()
+    /**
+     * Uploads byte content to S3 with specific metadata.
+     * @param key S3 object key
+     * @param content Byte array to upload
+     * @param contentType MIME type (e.g., "application/json", "application/gzip")
+     * @param contentEncoding Encoding (e.g., "gzip" or null)
+     */
+    public void uploadFile(String key, byte[] content, String contentType, String contentEncoding) {
+        PutObjectRequest.Builder putObBuilder = PutObjectRequest.builder()
                 .bucket(bucketName)
                 .key(key)
-                .build();
+                .serverSideEncryption(ServerSideEncryption.AES256);
 
-        s3Client.putObject(putOb, RequestBody.fromFile(file));
+        if (contentType != null) {
+            putObBuilder.contentType(contentType);
+        }
+
+        if (contentEncoding != null) {
+            putObBuilder.contentEncoding(contentEncoding);
+        }
+
+        // Upload from bytes in memory
+        s3Client.putObject(putObBuilder.build(), RequestBody.fromBytes(content));
     }
 
     public String downloadFileAsString(String key) {

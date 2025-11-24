@@ -13,6 +13,9 @@ import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
 
 import java.io.UnsupportedEncodingException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Map;
 
 @Service
 public class EmailService {
@@ -114,6 +117,70 @@ public class EmailService {
 
         } catch (MessagingException | UnsupportedEncodingException e) {
             throw new IllegalStateException("Failed to send OTP email to " + recipientEmail, e);
+        }
+    }
+    /**
+     * Updated: Sends a Sci-Fi themed reminder with detailed platform stats.
+     */
+    public void sendStreakReminder(String recipientEmail, String name, Long currentTotal, Map<String, Long> platformStats) {
+        try {
+            MimeMessage mime = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mime, "UTF-8");
+
+            helper.setFrom(new InternetAddress("no-reply@byrohan.in", "Rohan's Portfolio"));
+            helper.setTo(recipientEmail);
+            helper.setSubject("⚠️ Streak Alert: No Progress Detected Today");
+
+            Context ctx = new Context();
+            ctx.setVariable("name", name);
+            ctx.setVariable("totalCount", currentTotal);
+            ctx.setVariable("platformStats", platformStats); // Map<String, Long>
+
+            String htmlContent = templateEngine.process("streak_reminder", ctx);
+            helper.setText(htmlContent, true);
+            mailSender.send(mime);
+
+        } catch (MessagingException | UnsupportedEncodingException e) {
+            throw new IllegalStateException("Failed to send streak reminder", e);
+        }
+    }
+
+    public void sendLoginNotification(String email, String ip, String rawUserAgent, String resolution, Map<String, String> codingHandles) {
+        try {
+            MimeMessage mime = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mime, "UTF-8");
+            helper.setFrom(new InternetAddress("no-reply@byrohan.in", "Security System"));
+            helper.setTo(email);
+            helper.setSubject("Security Alert: New Login Detected");
+
+            Context ctx = new Context();
+            ctx.setVariable("username", email);
+            ctx.setVariable("time", LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) + " UTC");
+            ctx.setVariable("ip", ip);
+
+            String os = "Unknown OS";
+            String browser = "Unknown Browser";
+            if (rawUserAgent != null) {
+                if (rawUserAgent.contains("Windows")) os = "Windows NT";
+                else if (rawUserAgent.contains("Mac")) os = "MacOS / iOS";
+                else if (rawUserAgent.contains("Linux")) os = "Linux / Android";
+
+                if (rawUserAgent.contains("Chrome")) browser = "Chrome Engine";
+                else if (rawUserAgent.contains("Firefox")) browser = "Firefox";
+                else if (rawUserAgent.contains("Safari")) browser = "Safari";
+            }
+
+            ctx.setVariable("os", os);
+            ctx.setVariable("browser", browser);
+            ctx.setVariable("resolution", resolution);
+            ctx.setVariable("codingHandles", codingHandles);
+
+            String htmlContent = templateEngine.process("login_notification", ctx);
+            helper.setText(htmlContent, true);
+            mailSender.send(mime);
+
+        } catch (Exception e) {
+            System.err.println("Failed to send login notification: " + e.getMessage());
         }
     }
 }

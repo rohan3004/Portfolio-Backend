@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Mission Status: Stalled</title>
+    <style>
+        body { margin: 0; padding: 0; background-color: #020204; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #ccc; }
+        .hud-container {
+            max-width: 650px;
+            margin: 30px auto;
+            background: #0b0c15;
+            border: 1px solid #2a2d3e;
+            border-radius: 12px;
+            box-shadow: 0 0 30px rgba(255, 50, 50, 0.1); /* Red glow for warning */
+            overflow: hidden;
+        }
+        .alert-header {
+            background: linear-gradient(90deg, #2a0a0a 0%, #0b0c15 100%);
+            padding: 20px;
+            border-left: 4px solid #ff3333;
+            display: flex;
+            align-items: center;
+        }
+        .alert-icon { font-size: 24px; margin-right: 15px; }
+        .alert-title { color: #ff3333; font-size: 18px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+
+        .content-body { padding: 30px; }
+        .intro-text { font-size: 15px; line-height: 1.6; margin-bottom: 30px; color: #aaa; }
+        .highlight { color: #fff; font-weight: 600; }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: table;
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 10px;
+        }
+        .stat-cell {
+            display: table-cell;
+            width: 25%;
+            background: #151725;
+            border: 1px solid #2a2d3e;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            vertical-align: middle;
+        }
+        .platform-name { display: block; font-size: 11px; color: #6c7293; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px; }
+        .platform-value { display: block; font-size: 22px; color: #fff; font-weight: 700; text-shadow: 0 0 10px rgba(255, 255, 255, 0.1); }
+
+        /* Total Box */
+        .total-box {
+            margin-top: 25px;
+            background: rgba(255, 51, 51, 0.05);
+            border: 1px solid rgba(255, 51, 51, 0.2);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+        }
+        .total-label { font-size: 12px; color: #ff6666; text-transform: uppercase; letter-spacing: 1px; }
+        .total-count { font-size: 48px; color: #ffffff; font-weight: 800; line-height: 1; margin-top: 10px; text-shadow: 0 0 20px rgba(255, 51, 51, 0.4); }
+
+        .action-btn {
+            display: block;
+            width: 200px;
+            margin: 30px auto 0;
+            padding: 14px;
+            background: #ff3333;
+            color: #fff;
+            text-align: center;
+            text-decoration: none;
+            font-weight: bold;
+            border-radius: 4px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: background 0.3s;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 20px;
+            background: #080910;
+            font-size: 11px;
+            color: #444;
+            border-top: 1px solid #1a1c29;
+        }
+    </style>
+</head>
+<body style="background-color: #020204; margin: 0;">
+<table width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+        <td align="center">
+            <div class="hud-container">
+                <!-- Alert Header -->
+                <div class="alert-header">
+                    <span class="alert-icon">⚠️</span>
+                    <span class="alert-title">Momentum Critical // Zero Progress</span>
+                </div>
+
+                <div class="content-body">
+                    <p class="intro-text">
+                        Greetings <span class="highlight" th:text="${name}">User</span>. System diagnostics indicate your problem-solving metrics have flatlined for the last 24 hours.
+                        Consistency is the primary variable in algorithmic success.
+                    </p>
+
+                    <!-- Platform Stats Grid -->
+                    <div class="stats-grid" th:if="${platformStats != null}">
+                        <div class="stat-cell" th:if="${platformStats.containsKey('LeetCode')}">
+                            <span class="platform-name">LeetCode</span>
+                            <span class="platform-value" th:text="${platformStats.get('LeetCode')}">0</span>
+                        </div>
+                        <div class="stat-cell" th:if="${platformStats.containsKey('CodeChef')}">
+                            <span class="platform-name">CodeChef</span>
+                            <span class="platform-value" th:text="${platformStats.get('CodeChef')}">0</span>
+                        </div>
+                        <div class="stat-cell" th:if="${platformStats.containsKey('Codeforces')}">
+                            <span class="platform-name">Codeforces</span>
+                            <span class="platform-value" th:text="${platformStats.get('Codeforces')}">0</span>
+                        </div>
+                        <div class="stat-cell" th:if="${platformStats.containsKey('GFG')}">
+                            <span class="platform-name">GFG</span>
+                            <span class="platform-value" th:text="${platformStats.get('GFG')}">0</span>
+                        </div>
+                    </div>
+
+                    <!-- Big Total -->
+                    <div class="total-box">
+                        <div class="total-label">Current Aggregate Solved</div>
+                        <div class="total-count" th:text="${totalCount}">1243</div>
+                    </div>
+
+                    <p style="text-align: center; font-size: 13px; color: #666; margin-top: 20px;">
+                        > INITIATE PROBLEM SOLVING SEQUENCE IMMEDIATELY.
+                    </p>
+
+                    <a href="#" class="action-btn">Resume Sequence</a>
+                </div>
+
+                <div class="footer">
+                    AUTOMATED REMINDER SYSTEM // ROHAN'S PORTFOLIO
+                </div>
+            </div>
+        </td>
+    </tr>
+</table>
+</body>
+</html>

@@ -11,6 +11,7 @@ import com.rohan.contactus.model.Otp;
 import com.rohan.contactus.model.RefreshToken;
 import com.rohan.contactus.model.User;
 import com.rohan.contactus.service.EmailService;
+import com.rohan.contactus.service.ScraperService;
 import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -29,6 +30,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.security.SecureRandom;
 import java.time.Duration; // FIXED: Added Import
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;     // FIXED: Added Import
 
 @Service
@@ -42,6 +45,7 @@ public class AuthenticationService {
     private final OtpRepository otpRepository;
     private final EmailService emailService;
     private final LoginHistoryRepository loginHistoryRepository; // Field exists, import was missing
+    private final ScraperService scraperService;
 
     //registration
     private final UserRepository userRepository;
@@ -52,6 +56,14 @@ public class AuthenticationService {
 
     @Value("${application.security.otp.expiration-minutes:5}")
     private int otpExpiryMinutes;
+
+
+    private static final Map<String, String> URL_TEMPLATES = Map.of(
+            "codechef", "https://www.codechef.com/users/{username}",
+            "codeforces", "https://codeforces.com/profile/{username}",
+            "geeksforgeeks", "https://www.geeksforgeeks.org/user/{username}",
+            "leetcode", "https://leetcode.com/u/{username}"
+    );
 
     // --- 1. SEND / RESEND OTP ---
     @Transactional
@@ -94,7 +106,7 @@ public class AuthenticationService {
         emailService.sendOtpEmail(email, otpCode, otpExpiryMinutes);
     }
 
-    // --- 2. VERIFY OTP (Intermediate Step) ---
+    // --- 2. VERIFY OTP ---
     @Transactional
     public VerifyOtpResponse verifyOtp(LoginRequest request, HttpServletRequest httpRequest) {
         User user = userRepository.findByEmail(request.getUsername())
@@ -103,7 +115,6 @@ public class AuthenticationService {
         Otp otpEntity = otpRepository.findByUser(user)
                 .orElseThrow(() -> new BadCredentialsException("No OTP found."));
 
-        // Validate
         if (otpEntity.getExpiresAt().isBefore(LocalDateTime.now())) {
             logLoginAttempt(user, false, "OTP Expired", httpRequest);
             throw new BadCredentialsException("OTP expired.");
@@ -113,10 +124,8 @@ public class AuthenticationService {
             throw new BadCredentialsException("Invalid OTP.");
         }
 
-        // OTP Correct
-        otpRepository.delete(otpEntity); // Consume OTP
+        otpRepository.delete(otpEntity);
 
-        // Verify Status
         if (user.getAccountStatus() != User.AccountStatus.ACTIVE) {
             throw new BadCredentialsException("Account is " + user.getAccountStatus());
         }
@@ -125,30 +134,28 @@ public class AuthenticationService {
         user.setEmailVerified(true);
 
         if (!user.isProfileComplete()) {
-            // --- SCENARIO A: New User / Incomplete Profile ---
-            String tempToken = UUID.randomUUID().toString(); // FIXED: UUID imported
+            String tempToken = UUID.randomUUID().toString();
             user.setTempRegistrationToken(tempToken);
             userRepository.save(user);
-
-            // FIX: Updated to match 6-argument constructor (added null for refreshToken)
             return new VerifyOtpResponse(true, "Registration required", tempToken, user.getEmail(), null, null);
         } else {
-            // --- SCENARIO B: Existing User (Full Login) ---
             final String accessToken = jwtService.generateAccessToken(user);
             final String refreshTokenString = jwtService.generateRefreshToken(user);
             saveRefreshToken(user, refreshTokenString);
-
             logLoginAttempt(user, true, "Success", httpRequest);
-            // FIX: Updated to match 6-argument constructor
+
+            // --- TRIGGER LOGIN NOTIFICATION EMAIL ---
+            triggerLoginEmail(user, httpRequest);
+            // ---------------------------------------
+
             return new VerifyOtpResponse(false, "Login successful", null, user.getEmail(), accessToken, refreshTokenString);
         }
     }
 
-    // --- 3. COMPLETE REGISTRATION (Final Step) ---
+    // --- 3. COMPLETE REGISTRATION ---
     @Transactional
     public AuthenticationResult completeRegistration(FullRegistrationRequest request, HttpServletRequest httpRequest) {
 
-        // Verify username uniqueness
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new IllegalStateException("Username '" + request.getUsername() + "' is already taken.");
         }
@@ -162,7 +169,6 @@ public class AuthenticationService {
         user.setUsername(request.getUsername());
         user.setFullName(request.getFullName());
         user.setPhoneNumber(request.getPhoneNumber());
-
         user.setGender(request.getGender());
         user.setDateOfBirth(request.getDateOfBirth());
         user.setPinCode(request.getPinCode());
@@ -179,7 +185,7 @@ public class AuthenticationService {
         user.setRegistrationUserAgent(httpRequest.getHeader("User-Agent"));
         user.setReferralSource(request.getReferralSource());
 
-        // Fingerprinting
+        // Update Device Info for dd.json
         user.setDeviceId(request.getDeviceId());
         user.setPlatform(request.getPlatform());
         user.setAppVersion(request.getAppVersion());
@@ -189,11 +195,14 @@ public class AuthenticationService {
 
         user.setProfileComplete(true);
         user.setFirstLoginAt(LocalDateTime.now());
-        user.setTempRegistrationToken(null); // Consume token
+        user.setTempRegistrationToken(null);
 
         userRepository.save(user);
 
-        // Issue Tokens
+        // --- Trigger Initial Scrape & Device Details Upload ---
+        triggerInitialScrape(user);
+        // ----------------------------------------------------
+
         final String accessToken = jwtService.generateAccessToken(user);
         final String refreshTokenString = jwtService.generateRefreshToken(user);
         saveRefreshToken(user, refreshTokenString);
@@ -237,6 +246,57 @@ public class AuthenticationService {
     }
 
     // --- HELPERS ---
+
+    private void triggerLoginEmail(User user, HttpServletRequest req) {
+        String ip = getClientIp(req);
+        String ua = req.getHeader("User-Agent");
+
+        // Gather non-null coding handles for the email
+        Map<String, String> handles = new HashMap<>();
+        if (user.getCodechefHandle() != null) handles.put("CodeChef", user.getCodechefHandle());
+        if (user.getLeetcodeHandle() != null) handles.put("LeetCode", user.getLeetcodeHandle());
+        if (user.getCodeforcesHandle() != null) handles.put("Codeforces", user.getCodeforcesHandle());
+        if (user.getGfgHandle() != null) handles.put("Gfg", user.getGfgHandle());
+
+        // Pass resolution if we have it stored (from registration) or null
+        String resolution = user.getScreenResolution();
+
+        emailService.sendLoginNotification(user.getEmail(), ip, ua, resolution, handles);
+    }
+
+    private void triggerInitialScrape(User user) {
+        // 1. Build Device Details Map
+        Map<String, Object> deviceDetails = new HashMap<>();
+        deviceDetails.put("username", user.getUsername());
+        deviceDetails.put("fullName", user.getFullName());
+        deviceDetails.put("email", user.getEmail());
+        deviceDetails.put("registrationIp", user.getRegistrationIp());
+        deviceDetails.put("registrationUserAgent", user.getRegistrationUserAgent());
+        deviceDetails.put("deviceId", user.getDeviceId());
+        deviceDetails.put("platform", user.getPlatform());
+        deviceDetails.put("osVersion", user.getOsVersion());
+        deviceDetails.put("browserFingerprint", user.getBrowserFingerprint());
+        deviceDetails.put("createdAt", user.getCreatedAt() != null ? user.getCreatedAt().toString() : null);
+
+        // 2. Build Targets Map
+        Map<String, String> targets = new HashMap<>();
+        addIfPresent(targets, "codechef", user.getCodechefHandle());
+        addIfPresent(targets, "codeforces", user.getCodeforcesHandle());
+        addIfPresent(targets, "geeksforgeeks", user.getGfgHandle());
+        addIfPresent(targets, "leetcode", user.getLeetcodeHandle());
+
+        // 3. Trigger Fire-and-Forget Job
+        // Note: user.getEmail() acts as the reportId/S3 folder name
+        if (!targets.isEmpty()) {
+            scraperService.startScrapingJob(user.getEmail(), targets, deviceDetails);
+        }
+    }
+
+    private void addIfPresent(Map<String, String> targets, String platform, String handle) {
+        if (handle != null && !handle.isBlank()) {
+            targets.put(platform, URL_TEMPLATES.get(platform).replace("{username}", handle));
+        }
+    }
 
     private void logLoginAttempt(User user, boolean success, String reason, HttpServletRequest req) {
         LoginHistory history = new LoginHistory();

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Access Log</title>
+    <style>
+        /* Base Reset */
+        body { margin: 0; padding: 0; background-color: #050505; font-family: 'Courier New', Courier, monospace; color: #00ff41; }
+
+        /* Container - The 'Terminal' Window */
+        .terminal-container {
+            max-width: 650px;
+            margin: 20px auto;
+            background-color: #0a0a0a;
+            border: 1px solid #333;
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.1);
+            overflow: hidden;
+            border-radius: 4px;
+        }
+
+        /* Top Bar */
+        .terminal-header {
+            background-color: #111;
+            border-bottom: 1px solid #333;
+            padding: 10px 15px;
+            color: #666;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .status-dot { display: inline-block; width: 8px; height: 8px; background-color: #00ff41; border-radius: 50%; margin-right: 8px; box-shadow: 0 0 5px #00ff41; }
+
+        /* Main Content */
+        .content { padding: 30px; }
+
+        h1 { margin: 0 0 20px 0; font-size: 24px; color: #fff; text-transform: uppercase; letter-spacing: 1px; text-shadow: 0 0 10px rgba(255, 255, 255, 0.3); }
+        h2 { font-size: 14px; color: #00ff41; border-bottom: 1px dashed #00ff41; padding-bottom: 5px; margin-top: 25px; margin-bottom: 15px; text-transform: uppercase; }
+
+        /* Data Grid */
+        .data-grid { width: 100%; border-collapse: collapse; }
+        .data-grid td { padding: 8px 0; font-size: 13px; vertical-align: top; }
+        .label { color: #666; width: 140px; text-transform: uppercase; font-size: 11px; }
+        .value { color: #ddd; font-family: 'Consolas', 'Monaco', monospace; }
+
+        /* Dynamic Alerts */
+        .alert-box {
+            border: 1px solid #00b8ff;
+            background: rgba(0, 184, 255, 0.05);
+            color: #00b8ff;
+            padding: 15px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            border-left: 4px solid #00b8ff;
+        }
+
+        /* Footer */
+        .footer {
+            background-color: #080808;
+            padding: 15px;
+            text-align: center;
+            font-size: 10px;
+            color: #444;
+            border-top: 1px solid #222;
+        }
+
+        /* Highlight Values */
+        .highlight { color: #00ff41; }
+    </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #050505;">
+<table border="0" cellpadding="0" cellspacing="0" width="100%">
+    <tr>
+        <td align="center" style="padding: 20px 0;">
+            <div class="terminal-container">
+                <!-- Fake Terminal Header -->
+                <div class="terminal-header">
+                    <span class="status-dot"></span> ACCESS_LOG_V.2.4.1 // SECURE_CHANNEL
+                </div>
+
+                <div class="content">
+                    <h1>>> IDENTITY_VERIFIED</h1>
+
+                    <div class="alert-box">
+                        SYSTEM NOTIFICATION: A new login session has been established for user identifier: <span style="color:#fff" th:text="${username}">USER</span>.
+                    </div>
+
+                    <h2>// SESSION_METADATA</h2>
+                    <table class="data-grid">
+                        <tr th:if="${time != null}">
+                            <td class="label">Timestamp</td>
+                            <td class="value" th:text="${time}"></td>
+                        </tr>
+                        <tr th:if="${ip != null}">
+                            <td class="label">IP Address</td>
+                            <td class="value highlight" th:text="${ip}"></td>
+                        </tr>
+                        <tr th:if="${location != null}">
+                            <td class="label">Geo_Loc</td>
+                            <td class="value" th:text="${location}"></td>
+                        </tr>
+                    </table>
+
+                    <h2>// DEVICE_FINGERPRINT</h2>
+                    <table class="data-grid">
+                        <tr th:if="${os != null}">
+                            <td class="label">OS_Kernel</td>
+                            <td class="value" th:text="${os}"></td>
+                        </tr>
+                        <tr th:if="${browser != null}">
+                            <td class="label">Browser_Agent</td>
+                            <td class="value" th:text="${browser}"></td>
+                        </tr>
+                        <tr th:if="${deviceType != null}">
+                            <td class="label">Device_Type</td>
+                            <td class="value" th:text="${deviceType}"></td>
+                        </tr>
+                        <tr th:if="${resolution != null}">
+                            <td class="label">Viewport_Res</td>
+                            <td class="value" th:text="${resolution}"></td>
+                        </tr>
+                    </table>
+
+                    <div th:if="${codingHandles != null}" style="margin-top: 20px;">
+                        <h2>// LINKED_NEURAL_PROFILES</h2>
+                        <table class="data-grid">
+                            <tr th:each="handle : ${codingHandles}">
+                                <td class="label" th:text="${handle.key}">PLATFORM</td>
+                                <td class="value" style="color: #ff0055;" th:text="${handle.value}">HANDLE</td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <p style="margin-top: 30px; font-size: 12px; color: #555;">
+                        > DIAGNOSTIC COMPLETE.<br>
+                        > IF THIS WAS NOT YOU, INITIATE PROTOCOL: <a href="#" style="color: #ff0055; text-decoration: none;">[LOCKDOWN_ACCOUNT]</a>
+                    </p>
+                </div>
+
+                <div class="footer">
+                    ENCRYPTED TRANSMISSION // ROHAN'S CODE PIPELINE // 2025
+                </div>
+            </div>
+        </td>
+    </tr>
+</table>
+</body>
+</html>

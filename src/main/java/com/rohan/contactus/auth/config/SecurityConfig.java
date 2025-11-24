@@ -36,6 +36,7 @@ public class SecurityConfig {
             "https://rohan3004.github.io",
             "https://apis.byrohan.in",
             "https://portfolio.byrohan.in",
+            "https://dashboards.byrohan.in"
     };
 
     @Bean
@@ -58,6 +59,7 @@ public class SecurityConfig {
                         .requestMatchers(new AntPathRequestMatcher("/favicon.ico")).permitAll()
                         .requestMatchers(HttpMethod.GET, "/v1/reports/**").permitAll()
                         .requestMatchers("/v1/admin/**").hasRole("ADMIN")
+                        .requestMatchers(new AntPathRequestMatcher("/test/**")).permitAll()
                         // Protect everything else
                         .anyRequest().authenticated()
                 )
@@ -87,7 +89,7 @@ public class SecurityConfig {
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
 
         // Allow necessary headers, including Authorization for the Access Token
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Cache-Control"));
+        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Cache-Control", "X-Requested-With"));
 
         // ESSENTIAL for sending the HttpOnly Refresh Token cookie
         configuration.setAllowCredentials(true);

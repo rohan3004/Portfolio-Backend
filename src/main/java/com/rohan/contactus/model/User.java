@@ -33,6 +33,10 @@ public class User implements UserDetails {
     private String fullName;
     private String phoneNumber;
 
+    // --- TRACK PROGRESS (Fixed: added with default value) ---
+    @Column(nullable = false, columnDefinition = "bigint default 0")
+    private Long totalSolvedQuestions = 0L;
+
     private String gender;
     private String dateOfBirth; // Stored as String or LocalDate
 

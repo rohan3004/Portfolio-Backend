@@ -76,6 +76,9 @@ public class User implements UserDetails {
     private LocalDateTime lastLoginAt;
     private int failedLoginAttempts;
 
+    // --- NEW FIELD: Track Last Scrape Time for Cooldown ---
+    private LocalDateTime lastScrapedAt;
+
     @Enumerated(EnumType.STRING)
     private AccountStatus accountStatus = AccountStatus.ACTIVE;
 

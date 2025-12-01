@@ -57,6 +57,9 @@ public class AuthenticationService {
     @Value("${application.security.otp.expiration-minutes:5}")
     private int otpExpiryMinutes;
 
+    // Cooldown for scraping in hours
+    private static final long SCRAPE_COOLDOWN_HOURS = 3;
+
 
     private static final Map<String, String> URL_TEMPLATES = Map.of(
             "codechef", "https://www.codechef.com/users/{username}",
@@ -139,14 +142,16 @@ public class AuthenticationService {
             userRepository.save(user);
             return new VerifyOtpResponse(true, "Registration required", tempToken, user.getEmail(), null, null);
         } else {
+            // --- TRIGGER SCRAPE IF DUE ---
+            triggerScrapeIfDue(user);
+            // -----------------------------
+
             final String accessToken = jwtService.generateAccessToken(user);
             final String refreshTokenString = jwtService.generateRefreshToken(user);
             saveRefreshToken(user, refreshTokenString);
-            logLoginAttempt(user, true, "Success", httpRequest);
 
-            // --- TRIGGER LOGIN NOTIFICATION EMAIL ---
+            logLoginAttempt(user, true, "Success", httpRequest);
             triggerLoginEmail(user, httpRequest);
-            // ---------------------------------------
 
             return new VerifyOtpResponse(false, "Login successful", null, user.getEmail(), accessToken, refreshTokenString);
         }
@@ -237,6 +242,10 @@ public class AuthenticationService {
             refreshTokenRepository.delete(activeToken);
             throw new TokenRefreshException(oldRefreshToken, "Token reused. Revoked.");
         }
+
+        // --- TRIGGER SCRAPE IF DUE (On Session Renewal) ---
+        triggerScrapeIfDue(user);
+        // --------------------------------------------------
 
         final String newAccessToken = jwtService.generateAccessToken(user);
         final String newRefreshTokenString = jwtService.generateRefreshToken(user);
@@ -341,5 +350,18 @@ public class AuthenticationService {
         if (emailToDelete.equals(currentAdminEmail)) throw new AccessDeniedException("No self-revoke.");
         User user = userRepository.findByEmail(emailToDelete).orElseThrow(() -> new UsernameNotFoundException("User not found: " + emailToDelete));
         refreshTokenRepository.deleteByUserId(user.getId());
+    }
+
+    private void triggerScrapeIfDue(User user) {
+        // If never scraped OR scraped more than 3 hours ago
+        if (user.getLastScrapedAt() == null ||
+                Duration.between(user.getLastScrapedAt(), LocalDateTime.now()).toHours() >= SCRAPE_COOLDOWN_HOURS) {
+
+            triggerInitialScrape(user);
+
+            // Update timestamp
+            user.setLastScrapedAt(LocalDateTime.now());
+            userRepository.save(user);
+        }
     }
 }

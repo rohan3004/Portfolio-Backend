@@ -1,0 +1,36 @@
+package com.rohan.portfolio.controller;
+
+import com.rohan.portfolio.entity.Contact;
+import com.rohan.portfolio.service.ContactService;
+import com.rohan.portfolio.service.EmailService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+
+
+import java.util.List;
+
+
+@RestController
+@RequestMapping()
+public class ContactController {
+    @Autowired
+    private ContactService contactService;
+
+    @Autowired
+    private EmailService emailService;
+
+    @PostMapping("/v1/contact")
+    public ResponseEntity<String> submitContact(@RequestBody Contact contact) {
+        contactService.saveContact(contact);
+        emailService.sendEmail(contact);
+        return ResponseEntity.ok("Thank you!! Check your Inbox!");
+    }
+
+    @GetMapping("/v1/admin/contact")
+    public List<Contact> getAllContacts() {
+        return contactService.getAllContacts();
+    }
+
+}

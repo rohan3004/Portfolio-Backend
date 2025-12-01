@@ -9,22 +9,30 @@
         <relativePath/>
     </parent>
     <groupId>com.rohan</groupId>
-    <artifactId>contactUs</artifactId>
-    <version>0.0.1</version>
-    <name>contactUs</name>
-    <description>contactUs</description>
-    <url/>
+    <artifactId>portfolio-backend-api</artifactId>
+    <version>2.0.0</version>
+    <name>Rohan Portfolio Backend</name>
+    <description>Production-grade Spring Boot backend showcasing AWS S3,
+        GeoIP, JWT auth, email, and contact management</description>
+    <url>https://github.com/rohan3004/Portfolio-Backend</url>
     <licenses>
-        <license/>
+        <license>
+            <name>MIT</name>
+            <url>https://opensource.org/licenses/MIT</url>
+        </license>
     </licenses>
     <developers>
-        <developer/>
+        <developer>
+            <name>Rohan Chakravarty</name>
+            <email>rohan.chakravarty02@gmail.com</email>
+            <url>https://rcxdev.com</url>
+        </developer>
     </developers>
     <scm>
-        <connection/>
-        <developerConnection/>
-        <tag/>
-        <url/>
+        <connection>scm:git:git@github.com:rohan3004/Portfolio-Backend.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com:rohan3004/Portfolio-Backend.git</developerConnection>
+        <url>https://github.com/rohan3004/Portfolio-Backend</url>
+        <tag>HEAD</tag>
     </scm>
     <properties>
         <java.version>21</java.version>
@@ -34,40 +42,40 @@
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>s3</artifactId>
-            <version>2.25.11</version>
+            <version>[2.39.0,)</version>
         </dependency>
         <!-- Selenium Java -->
         <dependency>
             <groupId>org.seleniumhq.selenium</groupId>
             <artifactId>selenium-java</artifactId>
-            <version>4.18.1</version>
+            <version>[4.38.0,)</version>
         </dependency>
         <!-- WebDriver Manager -->
         <dependency>
             <groupId>io.github.bonigarcia</groupId>
             <artifactId>webdrivermanager</artifactId>
-            <version>5.7.0</version>
+            <version>[6.3.0,)</version>
         </dependency>
         <dependency>
             <groupId>com.maxmind.geoip2</groupId>
             <artifactId>geoip2</artifactId>
-            <version>4.0.1</version>
+            <version>[5.0.0,)</version>
         </dependency>
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-api</artifactId>
-            <version>0.11.5</version>
+            <version>[0.13.0,)</version>
         </dependency>
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-impl</artifactId>
-            <version>0.11.5</version>
+            <version>[0.13.0,)</version>
             <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-jackson</artifactId>
-            <version>0.11.5</version>
+            <version>[0.13.0,)</version>
             <scope>runtime</scope>
         </dependency>
         <dependency>
@@ -119,14 +127,12 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
-
         <dependency>
             <groupId>jakarta.validation</groupId>
             <artifactId>jakarta.validation-api</artifactId>
-            <version>3.0.2</version>
+            <version>4.0.0-M1</version>
         </dependency>
     </dependencies>
-
     <build>
         <plugins>
             <plugin>
@@ -135,5 +141,4 @@
             </plugin>
         </plugins>
     </build>
-
 </project>

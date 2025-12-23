@@ -38,7 +38,8 @@ public class SecurityConfig {
             "https://rohan3004.github.io",
             "https://apis.byrohan.in",
             "https://portfolio.byrohan.in",
-            "https://dashboards.byrohan.in"
+            "https://dashboards.byrohan.in",
+            "https://stream.byrohan.in"
     };
 
     @Bean

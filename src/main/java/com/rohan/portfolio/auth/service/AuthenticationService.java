@@ -301,6 +301,7 @@ public class AuthenticationService {
         // Note: user.getEmail() acts as the reportId/S3 folder name
         if (!targets.isEmpty()) {
             scraperService.startScrapingJob(user.getEmail(), targets, deviceDetails);
+            //add the total here
         }
     }
 

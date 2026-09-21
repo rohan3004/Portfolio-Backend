@@ -21,7 +21,7 @@ public class ReportController {
     private static final Map<String, String> URL_TEMPLATES = Map.of(
             "codechef", "https://www.codechef.com/users/{username}",
             "codeforces", "https://codeforces.com/profile/{username}",
-            "geeksforgeeks", "https://www.geeksforgeeks.org/user/{username}",
+            "geeksforgeeks", "https://www.geeksforgeeks.org/profile/{username}?tab=activity",
             "leetcode", "https://leetcode.com/u/{username}"
     );
 

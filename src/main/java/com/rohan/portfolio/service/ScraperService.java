@@ -21,6 +21,7 @@ public class ScraperService {
 
     private final S3Service s3Service;
     private final ObjectMapper objectMapper;
+    private final LeetCodeApiService leetCodeApiService;
 
     private final ExecutorService executor = Executors.newCachedThreadPool();
 
@@ -38,18 +39,28 @@ public class ScraperService {
                     uploadDeviceDetails(reportId, deviceDetails);
                 }
 
-                // 2. Setup Chrome Driver
-                WebDriverManager.chromedriver().setup();
-                ChromeOptions options = new ChromeOptions();
-                options.addArguments("--headless=new", "--disable-dev-shm-usage", "--no-sandbox");
-                options.addArguments("--log-level=3"); // Suppress DevTools warnings
-                options.addArguments("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
-
-                driver = new ChromeDriver(options);
-
-                // 3. Scrape Targets
+                // 2. Scrape Targets.
+                //    LeetCode uses the GraphQL API (no browser). Other platforms use
+                //    Selenium, and Chrome is started lazily only if one is present.
                 for (Map.Entry<String, String> entry : targets.entrySet()) {
-                    processSingleTarget(driver, reportId, entry.getKey(), entry.getValue());
+                    String platform = entry.getKey();
+                    String url = entry.getValue();
+
+                    if ("leetcode".equals(platform)) {
+                        processLeetCode(reportId, platform, url);
+                        continue;
+                    }
+
+                    if (driver == null) {
+                        WebDriverManager.chromedriver().setup();
+                        ChromeOptions options = new ChromeOptions();
+                        options.addArguments("--headless=new", "--disable-dev-shm-usage", "--no-sandbox");
+                        options.addArguments("--log-level=3"); // Suppress DevTools warnings
+                        options.addArguments("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+                        driver = new ChromeDriver(options);
+                    }
+
+                    processSingleTarget(driver, reportId, platform, url);
                 }
 
             } catch (Exception ignored) {
@@ -74,6 +85,29 @@ public class ScraperService {
 
         } catch (Exception ignored) {
         }
+    }
+
+    private void processLeetCode(String reportId, String platform, String url) {
+        try {
+            // Extract the username from the profile URL: https://leetcode.com/u/{username}
+            String username = extractLeetCodeUsername(url);
+
+            byte[] jsonBytes = leetCodeApiService.fetchProfileStats(username);
+
+            String objectKey = reportId + "/raw/" + platform + ".json";
+            s3Service.uploadFile(objectKey, jsonBytes, "application/json", null);
+
+        } catch (Exception ignored) {
+        }
+    }
+
+    private String extractLeetCodeUsername(String url) {
+        String cleaned = url;
+        if (cleaned.endsWith("/")) {
+            cleaned = cleaned.substring(0, cleaned.length() - 1);
+        }
+        int slash = cleaned.lastIndexOf('/');
+        return slash >= 0 ? cleaned.substring(slash + 1) : cleaned;
     }
 
     private void processSingleTarget(WebDriver driver, String reportId, String platform, String url) {

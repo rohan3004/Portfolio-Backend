@@ -94,8 +94,16 @@ public class ScraperService {
 
             byte[] jsonBytes = leetCodeApiService.fetchProfileStats(username);
 
-            String objectKey = reportId + "/raw/" + platform + ".json";
-            s3Service.uploadFile(objectKey, jsonBytes, "application/json", null);
+            // Compress the raw JSON payload in memory (gzip), mirroring the
+            // other platforms' compressed uploads.
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            try (GZIPOutputStream gzipOS = new GZIPOutputStream(byteArrayOutputStream)) {
+                gzipOS.write(jsonBytes);
+            }
+            byte[] compressedBytes = byteArrayOutputStream.toByteArray();
+
+            String objectKey = reportId + "/raw/" + platform + ".gz";
+            s3Service.uploadFile(objectKey, compressedBytes, "application/gzip", "gzip");
 
         } catch (Exception ignored) {
         }
